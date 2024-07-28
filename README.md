@@ -19,7 +19,8 @@ Make sure that the default host triple is `x86_64-pc-windows-msvc`
 `pip install maturin`
 
 **3. Strawberry Perl** \
-[https://strawberryperl.com/]
+[https://strawberryperl.com/] \
+
 **4. cmake for windows** \
 [https://cmake.org/download/]
 
