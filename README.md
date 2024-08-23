@@ -8,6 +8,7 @@ In Optional select
 * MSVC v143 - VS 2022 C++ x64/x86 build tools
 * C++ ATL & C++ MFC
 * C++ Cmake tools for Windows
+* Windows 10/11 SDK
 
 **3. Rust compiler**
 [https://www.rust-lang.org/tools/install]
