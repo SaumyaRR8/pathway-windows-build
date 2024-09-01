@@ -58,6 +58,7 @@ use std::mem::take;
 #[cfg(unix)]
 use std::os::unix::prelude::*;
 
+use std::os::windows::io::{AsRawHandle, AsHandle, OwnedHandle};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time;
@@ -3047,7 +3048,7 @@ pub fn run_with_new_graph(
     let license = License::new(license_key);
     let telemetry_config =
         EngineTelemetryConfig::create(&license, run_id, monitoring_server, trace_parent)?;
-    /*let results: Vec<Vec<_>> = run_with_wakeup_receiver(py, |wakeup_receiver| {
+    let results: Vec<Vec<_>> = run_with_wakeup_receiver(py, |wakeup_receiver| {
         py.allow_threads(|| {
             run_with_new_dataflow_graph(
                 move |graph| {
@@ -3081,14 +3082,14 @@ pub fn run_with_new_graph(
                 terminate_on_error,
             )
         })
-    })??;*/
+    })??;
     let mut captured_tables = Vec::new();
-    /*for result in results {
+    for result in results {
         captured_tables.resize_with(result.len(), Vec::new);
         for (i, table) in result.into_iter().enumerate() {
             captured_tables[i].push(table);
         }
-    }*/
+    }
     captured_tables
         .into_iter()
         .map(make_captured_table)
@@ -4700,21 +4701,28 @@ impl PyExportedTable {
         self.inner.failed()
     }
 }
-/*
-#[cfg(unix)]
+
 struct WakeupHandler<'py> {
     py: Python<'py>,
-    _fd: OwnedFd,
+    _fd: OwnedHandle,
     set_wakeup_fd: &'py PyAny,
     old_wakeup_fd: &'py PyAny,
 }
 
-#[cfg(unix)]
+fn convert_void_ptr_to_i32(ptr: *mut libc::c_void) -> i32 {
+    // Convert the *mut libc::c_void to *mut i32
+    let int_ptr: *mut i32 = ptr as *mut i32;
+
+    // Dereference the pointer to get the i32 value
+    unsafe { *int_ptr }
+}
+
+
 impl<'py> WakeupHandler<'py> {
-    fn new(py: Python<'py>, fd: OwnedFd) -> PyResult<Option<Self>> {
+    fn new(py: Python<'py>, fd: OwnedHandle) -> PyResult<Option<Self>> {
         let signal_module = py.import("signal")?;
         let set_wakeup_fd = signal_module.getattr("set_wakeup_fd")?;
-        let args = PyTuple::new(py, [fd.as_raw_fd()]);
+        let args = PyTuple::new(py, [convert_void_ptr_to_i32(fd.as_raw_handle())]);
         let old_wakeup_fd = set_wakeup_fd.call1(args);
         if let Err(ref error) = old_wakeup_fd {
             if error.is_instance_of::<PyValueError>(py) {
@@ -4732,9 +4740,8 @@ impl<'py> WakeupHandler<'py> {
         py.check_signals()?;
         Ok(res)
     }
-}*/
+}
 
-/*#[cfg(unix)]
 impl<'py> Drop for WakeupHandler<'py> {
     fn drop(&mut self) {
         let py = self.py;
@@ -4745,7 +4752,6 @@ impl<'py> Drop for WakeupHandler<'py> {
     }
 }
 
-#[cfg(unix)]
 fn run_with_wakeup_receiver<R>(
     py: Python,
     logic: impl FnOnce(Option<WakeupReceiver>) -> R,
@@ -4777,16 +4783,7 @@ fn run_with_wakeup_receiver<R>(
         wakeup_thread.join().unwrap()
     }
     Ok(logic(Some(wakeup_receiver)))
-}*/
-
-/*#[cfg(not(unix))]
-fn run_with_wakeup_receiver<R>(
-    _py: Python,
-    logic: impl FnOnce(Option<WakeupReceiver>) -> R,
-) -> PyResult<R> {
-    // Return an error or handle the case for non-Linux operating systems
-    Err(PyErr::new::<PyValueError, _>("This code only runs on unix operating system"))
-}*/
+}
 
 static LOGGING_RESET_HANDLE: Lazy<ResetHandle> = Lazy::new(logging::init);
 
